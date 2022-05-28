@@ -20,4 +20,4 @@ _✨ ——的[真寻](https://github.com/HibiKier/zhenxun_bot)适配 ✨_
 
 ### 安装方法
 
-将 **zhenxun_arktools** 文件夹整个放进真寻 bot 的 **plugins** 文件夹即可
+将 **arktools** 文件夹整个放进真寻 bot 的 **plugins** 文件夹即可
