@@ -3,6 +3,7 @@ import nonebot
 from services.log import logger
 from nonebot import on_regex
 from nonebot_plugin_apscheduler import scheduler
+from nonebot.adapters.onebot.v11 import Message
 import os
 
 from .data_source import get_activities, ACTIVITY_PATH, IMAGE_PATH
@@ -17,7 +18,7 @@ usage：
 __plugin_des__ = "看看方舟的最新活动是什么"
 __plugin_cmd__ = ["方舟最新活动"]
 __plugin_type__ = ("方舟相关",)
-__plugin_version__ = 0.1
+__plugin_version__ = 0.2
 __plugin_author__ = "Number_Sir"
 __plugin_settings__ = {
     "level": 5,
@@ -33,10 +34,16 @@ latest_activity = on_regex(r'[查看询]*方舟[最]*新+[活动闻]*', priority
 @latest_activity.handle()
 async def _():
     rst_msg = await get_activities(is_force=True)
-    if rst_msg:
-        await latest_activity.finish(rst_msg)
+    if isinstance(rst_msg, Message):
+        rst = rst_msg
+    elif isinstance(rst_msg, str):
+        rst = (
+            f"方舟最新活动截图失败！\n请更换至非windows平台部署本插件\n或检查网络连接并稍后重试"
+            f"最新的活动信息请见链接: {rst_msg}"
+        )
     else:
-        await latest_activity.finish(f"方舟最新活动截图失败！请更换至非windows平台部署本插件\n或检查网络连接并稍后重试", at_sender=True)
+        rst = f"无法获得方舟最新活动信息！请稍后重试"
+    await latest_activity.finish(rst)
 
 
 @scheduler.scheduled_job(

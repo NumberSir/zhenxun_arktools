@@ -19,14 +19,14 @@ DAILY_LEVELS_PATH = IMAGE_PATH / "arktools" / "daily_sources"
 
 async def get_daily_sources(is_force: bool = False):
     """获取每日资源关卡"""
-    if not os.path.exists(DAILY_LEVELS_PATH):
-        os.makedirs(DAILY_LEVELS_PATH)
+    os.mkdir(DAILY_LEVELS_PATH) if not os.path.exists(DAILY_LEVELS_PATH) else None
     today = str((datetime.now() - timedelta(hours=4)).date())
     file_name = DAILY_LEVELS_PATH / f"{today}.png"
     if file_name.exists() and not is_force:
         return Message(image(file_name) + f"{today} - 数据来源于 https://prts.wiki/")
 
     page = None
+    screenshot = None
     for retry in range(3):
         try:
             browser = await get_browser()
@@ -46,11 +46,11 @@ async def get_daily_sources(is_force: bool = False):
             box['height'] += 70
             await asyncio.sleep(1)
             screenshot = await page.screenshot(clip=box)
-        except TimeoutError:
-            logger.warning(f"第{retry + 1}次获取方舟每日资源截图失败……")
+        except TimeoutError as e:
+            logger.warning(f"第{retry + 1}次获取方舟每日资源截图失败…… {e}")
             continue
-        except AttributeError:
-            logger.warning(f"第{retry + 1}次获取方舟每日资源截图失败……")
+        except AttributeError as e:
+            logger.warning(f"第{retry + 1}次获取方舟每日资源截图失败…… {e}")
             continue
         except Exception as e:
             if page:
@@ -59,11 +59,14 @@ async def get_daily_sources(is_force: bool = False):
             return None
         else:
             await page.close()
-            b_scr = BytesIO(screenshot)
-            img = Image.open(b_scr)
+            break
+
+    if screenshot:
+        b_scr = BytesIO(screenshot)
+        with Image.open(b_scr) as img:
             img.save(file_name)
-            return Message(
-                image(base64.b64encode(screenshot)) + f"{today} - 数据来源于 https://prts.wiki/")
+        return Message(
+            image(file_name) + f"{today} - 数据来源于 https://prts.wiki/")
     if page:
         await page.close()
     return None

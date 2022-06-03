@@ -99,6 +99,7 @@ async def get_latest_info(activity_data: dict, latest: str, *, is_cover: bool = 
         )
 
     page = None
+    screenshot = None
     for retry in range(3):
         try:
             browser = await get_browser()
@@ -109,25 +110,29 @@ async def get_latest_info(activity_data: dict, latest: str, *, is_cover: bool = 
             await page.set_viewport_size({"width": 960, "height": 1080})
             await asyncio.sleep(1)
             screenshot = await page.screenshot(full_page=True, type='jpeg', quality=50)
-        except TimeoutError:
-            logger.warning(f"第{retry + 1}次获取方舟活动截图失败……")
+        except TimeoutError as e:
+            logger.warning(f"第{retry + 1}次获取方舟活动截图失败…… {e}")
             continue
         except Exception as e:
             if page:
                 await page.close()
-            logger.error(f"方舟活动截图失败！ - {type(e)}: {e}")
+            logger.error(f"方舟活动截图失败！ - {e}")
             return None
         else:
             await page.close()
-            b_scr = BytesIO(screenshot)
-            img = Image.open(b_scr)
+            break
+
+    if screenshot:
+        b_scr = BytesIO(screenshot)
+        with Image.open(b_scr) as img:
             img.save(file_name)
-            return Message(
-                f"{image(base64.b64encode(screenshot))}"
-                f"{title}\n"
-                f"公告更新日期: {latest}\n"
-                f"数据来源于: {url}"
-            )
+        return Message(
+            f"{image(file_name)}"
+            f"{title}\n"
+            f"公告更新日期: {latest}\n"
+            f"数据来源于: {url}"
+        )
     if page:
         await page.close()
-    return None
+
+    return url
