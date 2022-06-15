@@ -1,3 +1,3 @@
 import nonebot
 
-nonebot.load_plugins("plugins/arktools")
+nonebot.load_plugins("extensive_plugin/arktools")
