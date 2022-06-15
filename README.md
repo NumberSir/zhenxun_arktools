@@ -22,9 +22,9 @@ _✨ ——的[真寻](https://github.com/HibiKier/zhenxun_bot)适配 ✨_
 
 推荐使用真寻自带的安装仓库插件方法安装。
 
-或是克隆本仓库并将 **arktools** 文件夹整个放进真寻 bot 根目录下的 **extensive_plugin** 文件夹
+或是克隆本仓库并将 **zhenxun_arktools** 文件夹整个放进真寻 bot 根目录下的 **extensive_plugin** 文件夹
 
-或是下载发行版，将压缩包解压到一个文件夹 **arktools**，后将整个文件夹放进真寻 bot 根目录下的 **extensive_plugin** 文件夹
+或是下载发行版，将压缩包解压到一个文件夹 **zhenxun_arktools**，后将整个文件夹放进真寻 bot 根目录下的 **extensive_plugin** 文件夹
 
 ### 帮助指令
 
