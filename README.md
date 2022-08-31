@@ -33,3 +33,5 @@ _✨ ——的[真寻](https://github.com/HibiKier/zhenxun_bot)适配 ✨_
 > 帮助 方舟最新活动
 > 
 > 帮助 方舟公招推荐
+> 
+> 帮助 方舟干员信息
