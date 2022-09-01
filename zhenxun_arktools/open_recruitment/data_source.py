@@ -14,11 +14,13 @@ from configs.config import Config
 
 SAVE_PATH = zx_IMAGE_PATH / "arktools" / "recruitment"
 FONT_PATH = Path(__file__).parent.parent / "_data" / "operator_info" / "font"
+JSON_PATH = Path(__file__).parent.parent / "_data" / "operator_info" / "json"
+IMAGE_PATH = Path(__file__).parent.parent / "_data" / "operator_info" / "image"
 
 
 def ocr(image_url: str) -> set:
     """调用腾讯云进行 OCR 识别公招标签"""
-    with open(Path().parent.parent / "_data" / "operator_info" / "json" / "gacha_table.json", "r",
+    with open(JSON_PATH / "gacha_table.json", "r",
               encoding="utf-8") as f:
         TAGS = json.load(f)
     TAGS = {_["tagName"] for _ in TAGS["gachaTags"]}
@@ -61,13 +63,13 @@ class Operator:
 def load_operator_data() -> dict:
     """读取干员基本信息：职业、位置、性别、标签、稀有度"""
     operators = {}
-    with open(Path().parent / "json" / "character_table.json", "r", encoding="utf-8") as f:
+    with open(JSON_PATH / "character_table.json", "r", encoding="utf-8") as f:
         operator_basic_info: dict = json.load(f)
 
-    with open(Path().parent / "json" / "handbook_info_table.json", "r", encoding="utf-8") as f:
+    with open(JSON_PATH / "handbook_info_table.json", "r", encoding="utf-8") as f:
         operator_data_info: dict = json.load(f)
 
-    with open(Path().parent / "json" / "gacha_table.json", "r", encoding="utf-8") as f:
+    with open(JSON_PATH / "gacha_table.json", "r", encoding="utf-8") as f:
         operator_obtainable: dict = json.load(f)
 
     for code, info in operator_basic_info.items():
@@ -114,7 +116,7 @@ def get_rare_operators(tags: set) -> list:
     rarity = {0: 0, 1: 1, 2: 2, 3: 3, 4: 4}
     general = {}
 
-    with open(Path().parent / "json" / "recruitment_tags.json", "r", encoding="utf-8") as f:
+    with open(JSON_PATH / "recruitment_tags.json", "r", encoding="utf-8") as f:
         tags_cate = json.load(f)
 
     operators = load_operator_data()
@@ -242,7 +244,7 @@ def build_image(result_list: list) -> Image:
 
         for op_idx, op in enumerate(data["operators"]):
             op_background = Image.new(mode="RGBA", size=(128, 164), color=(0, 0, 0, 0))  # 干员头图+名称
-            avatar = Image.open(Path().parent / "avatar" / f"{op[1]}.png").convert("RGBA").resize((128, 128))  # 头像
+            avatar = Image.open(IMAGE_PATH / "avatar" / f"{op[1]}.png").convert("RGBA").resize((128, 128))  # 头像
             name = op[0]
             op_background.paste(im=avatar, mask=avatar.split()[3])
             text_border(text=op[0], draw=Draw(op_background), x=64, y=150, anchor="mm", font=font,
@@ -285,6 +287,7 @@ def build_image(result_list: list) -> Image:
 
     draw.line(xy=(1001 - 2, 0, 1001 - 2, h - 2), fill=(190, 190, 190, 255), width=2)
     file = SAVE_PATH / "temp.png"
+    None if os.path.exists(SAVE_PATH) else os.mkdir(SAVE_PATH)
     main_background.save(file)
     return file
 
