@@ -1,6 +1,7 @@
 from nonebot import get_driver
 from nonebot import logger
 from dataclasses import dataclass
+import os
 
 import json
 from tencentcloud.common import credential
