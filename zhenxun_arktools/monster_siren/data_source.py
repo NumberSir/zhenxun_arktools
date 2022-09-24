@@ -79,7 +79,7 @@ async def build_image():
         cover = Image.open(ALBUM_COVER_PATH / f"{name}.png").convert("RGBA").resize(size=(256, 256))
 
         album_bg.paste(im=cover, box=(0, 0), mask=cover.split()[3])
-        text_border(text=name, draw=Draw(album_bg), anchor="mm", x=128, y=288, font=font, fill_colour=(255, 255, 255, 255), shadow_colour=(0, 0, 0, 255))
+        text_border(text=name, draw=Draw(album_bg), anchor="mm", x=128, y=288, font=font, fill_colour=(0, 0, 0, 255), shadow_colour=(0, 0, 0, 255))
         album_backgrounds.append(album_bg)
 
     last_high = 0
