@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 
 from configs.path_config import IMAGE_PATH as zx_IMAGE_PATH
+from .._exceptions import OperatorNotExistException
 
 
 TEST_CHARACTER_NAME = "艾雅法拉"
@@ -46,6 +47,8 @@ class OperatorInfo:
                 self.operator_result_info["operator_code"] = code
                 self.operator_result_info["rarity"] = data["rarity"]
                 self.init_data = data
+                return
+        raise OperatorNotExistException(details=name)  # 干员不存在
 
     def _get_operator_all_skills_materials(self):
         """获取干员技能1-7材料"""
