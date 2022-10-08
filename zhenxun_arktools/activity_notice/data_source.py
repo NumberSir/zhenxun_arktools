@@ -22,7 +22,6 @@ ACTIVITY_PATH = DATA_PATH / "arktools" / "activity_notice"
 
 async def get_activities(*, is_force: bool = False, is_cover: bool = False):
     """获取近期活动"""
-    activity_data = {}
     announcement_url = "https://ak.hypergryph.com/news.html"
     result = None
     for retry in range(5):
@@ -46,11 +45,14 @@ async def get_activities(*, is_force: bool = False, is_cover: bool = False):
     activity_times = dom.xpath(
         "//ol[@class='articleList' and @data-category-key='ACTIVITY']/li/a/span[@class='articleItemDate']/text()"
     )[:3]
-    for idx, time in enumerate(activity_times):
-        activity_data[time] = {
+    activity_data = {
+        time: {
             "url": f"https://ak.hypergryph.com{activity_urls[idx]}",
-            "title": activity_titles[idx].strip()
+            "title": activity_titles[idx].strip(),
         }
+        for idx, time in enumerate(activity_times)
+    }
+
     if not os.path.exists(ACTIVITY_PATH):
         os.makedirs(ACTIVITY_PATH)
     if not os.path.exists(ACTIVITY_PATH / "activities.json"):
@@ -60,9 +62,7 @@ async def get_activities(*, is_force: bool = False, is_cover: bool = False):
     if update_flag or is_force:
         latest = activity_times[0]
         msg = await get_latest_info(activity_data, latest, is_cover=is_cover)
-        if msg:
-            return msg
-        return None
+        return msg or None
     return None
 
 
