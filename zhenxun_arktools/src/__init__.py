@@ -18,6 +18,7 @@ nonebot.load_plugin(Path(__file__).parent / "misc_operator_birthday")
 nonebot.load_plugin(Path(__file__).parent / "tool_open_recruitment")
 nonebot.load_plugin(Path(__file__).parent / "tool_operator_info")
 nonebot.load_plugin(Path(__file__).parent / "tool_sanity_notify")
+nonebot.load_plugin(Path(__file__).parent / "tool_announce_push")
 
 
 Config.add_plugin_config(
