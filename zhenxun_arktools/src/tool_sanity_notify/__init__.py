@@ -108,9 +108,9 @@ usage:
     理智查看 => 查看距离理智回满还有多久，以及当期理智为多少
 """.strip()
 __plugin_des__ = "在理智回满时@用户提醒"
-__plugin_cmd__ = ["理智提醒/ADDSAN", "理智查看/CHECKSAN"]
+__plugin_cmd__ = ["理智提醒", "ADDSAN", "理智查看", "CHECKSAN"]
 __plugin_settings__ = {
-    "cmd": ["理智提醒/ADDSAN", "理智查看/CHECKSAN"]
+    "cmd": ["理智提醒", "ADDSAN", "理智查看", "CHECKSAN"]
 }
 __plugin_type__ = ("方舟相关", 1)
 __plugin_version__ = 1.0

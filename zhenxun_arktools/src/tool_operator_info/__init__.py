@@ -42,9 +42,9 @@ usage:
         干员 [干员名称] => 查看对应干员的材料
 """.strip()
 __plugin_des__ = "查看干员精英化、技能升级、技能专精、模组解锁需要的材料"
-__plugin_cmd__ = ["干员/方舟干员"]
+__plugin_cmd__ = ["干员", "方舟干员"]
 __plugin_settings__ = {
-    "cmd": ["干员/方舟干员"]
+    "cmd": ["干员", "方舟干员"]
 }
 __plugin_type__ = ("方舟相关", 1)
 __plugin_version__ = 1.0
