@@ -18,10 +18,11 @@ nonebot.load_plugin(Path(__file__).parent / "misc_operator_birthday")
 nonebot.load_plugin(Path(__file__).parent / "tool_open_recruitment")
 nonebot.load_plugin(Path(__file__).parent / "tool_operator_info")
 nonebot.load_plugin(Path(__file__).parent / "tool_sanity_notify")
+nonebot.load_plugin(Path(__file__).parent / "tool_announce_push")
 
 
 Config.add_plugin_config(
-    module="module",
+    module="zhenxun_arktools",
     key="arknights_baidu_app_id",
     name="zhenxun_arktools",
     value="",
@@ -29,7 +30,7 @@ Config.add_plugin_config(
     default_value=""
 )
 Config.add_plugin_config(
-    module="module",
+    module="zhenxun_arktools",
     key="arknights_baidu_api_key",
     name="zhenxun_arktools",
     value="",
@@ -37,7 +38,7 @@ Config.add_plugin_config(
     default_value=""
 )
 Config.add_plugin_config(
-    module="module",
+    module="zhenxun_arktools",
     key="github_raw",
     name="zhenxun_arktools",
     value="https://raw.githubusercontent.com",
@@ -45,10 +46,42 @@ Config.add_plugin_config(
     default_value="https://raw.githubusercontent.com"
 )
 Config.add_plugin_config(
-    module="module",
+    module="zhenxun_arktools",
     key="github_site",
     name="zhenxun_arktools",
     value="https://github.com",
     help_="https://github.com 的镜像站",
     default_value="https://github.com"
+)
+Config.add_plugin_config(
+    module="zhenxun_arktools",
+    key="announce_push_switch",
+    name="zhenxun_arktools",
+    value=False,
+    help_="https://github.com 的镜像站",
+    default_value=False
+)
+Config.add_plugin_config(
+    module="zhenxun_arktools",
+    key="announce_push_interval",
+    name="zhenxun_arktools",
+    value=1,
+    help_="https://github.com 的镜像站",
+    default_value=1
+)
+Config.add_plugin_config(
+    module="zhenxun_arktools",
+    key="sanity_notify_switch",
+    name="zhenxun_arktools",
+    value=False,
+    help_="https://github.com 的镜像站",
+    default_value=False
+)
+Config.add_plugin_config(
+    module="zhenxun_arktools",
+    key="sanity_notify_interval",
+    name="zhenxun_arktools",
+    value=10,
+    help_="https://github.com 的镜像站",
+    default_value=10
 )

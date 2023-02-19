@@ -8,7 +8,7 @@ from itertools import permutations
 import math
 from io import BytesIO
 
-from nonebot import get_driver
+from nonebot import get_driver, logger
 
 from ..core.models_v3 import Character
 from ..configs import BaiduOCRConfig, PathConfig
@@ -27,7 +27,13 @@ async def baidu_ocr(image_url: str, client: httpx.AsyncClient) -> Set[str]:
     data = {"url": image_url}
     response = await client.post(url, data=data)
 
-    all_words = {_["words"] for _ in response.json()["words_result"]}
+    try:
+        all_words = {_["words"] for _ in response.json()["words_result"]}
+    except KeyError as e:
+        logger.warning("百度ocr识别失败！")
+        logger.warning(f"{response.json()}")
+        return None
+
     async with aopen(pcfg.arknights_gamedata_path / "excel" / "gacha_table.json", "r", encoding="utf-8") as fp:
         tags = {_["tagName"] for _ in json.loads(await fp.read())["gachaTags"]}
 
@@ -43,7 +49,11 @@ async def get_baidu_ocr_access_token(client: httpx.AsyncClient) -> str:
         f"client_secret={bconfig.arknights_baidu_api_key}")
     response = await client.post(url=url)
     data = response.json()
-    return data["access_token"]
+    try:
+        return data["access_token"]
+    except KeyError as e:
+        logger.warning("百度ocr获取token失败！")
+        logger.warning(f"{data}")
 
 
 def process_word_tags(tags: list):

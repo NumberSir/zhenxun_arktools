@@ -48,6 +48,8 @@ async def _(state: T_State, rec: Union[Message, str] = Arg()):
         async with httpx.AsyncClient() as client:
             tags = await baidu_ocr(image_url=img_url, client=client)
 
+    if tags is None:
+        await recruit.finish("百度OCR出错，请检查运行日志！", at_sender=True)
     if not tags:
         await recruit.finish("没有检测到符合要求的公招标签！", at_sender=True)
     logger.debug(f"tags: {tags}")
