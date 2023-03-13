@@ -23,18 +23,18 @@ nonebot.load_plugin(Path(__file__).parent / "tool_announce_push")
 
 Config.add_plugin_config(
     module="zhenxun_arktools",
-    key="arknights_baidu_app_id",
-    name="zhenxun_arktools",
-    value="",
-    help_="百度 OCR APP ID, 详见https://console.bce.baidu.com/ai/?fromai=1#/ai/ocr/app/list",
-    default_value=""
-)
-Config.add_plugin_config(
-    module="zhenxun_arktools",
     key="arknights_baidu_api_key",
     name="zhenxun_arktools",
     value="",
     help_="百度 OCR API KEY, 详见https://console.bce.baidu.com/ai/?fromai=1#/ai/ocr/app/list",
+    default_value=""
+)
+Config.add_plugin_config(
+    module="zhenxun_arktools",
+    key="arknights_baidu_secret_key",
+    name="zhenxun_arktools",
+    value="",
+    help_="百度 OCR SECRET KEY, 详见https://console.bce.baidu.com/ai/?fromai=1#/ai/ocr/app/list",
     default_value=""
 )
 Config.add_plugin_config(

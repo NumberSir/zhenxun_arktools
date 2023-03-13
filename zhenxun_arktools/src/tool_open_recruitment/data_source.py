@@ -45,8 +45,8 @@ async def get_baidu_ocr_access_token(client: httpx.AsyncClient) -> str:
     url = (
         f"https://aip.baidubce.com/oauth/2.0/token?"
         f"grant_type=client_credentials&"
-        f"client_id={bconfig.arknights_baidu_app_id}&"
-        f"client_secret={bconfig.arknights_baidu_api_key}")
+        f"client_id={bconfig.arknights_baidu_api_key}&"
+        f"client_secret={bconfig.arknights_baidu_secret_key}")
     response = await client.post(url=url)
     data = response.json()
     try:
