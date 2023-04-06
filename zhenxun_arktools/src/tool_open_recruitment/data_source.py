@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import httpx
 from aiofiles import open as aopen
 import json
@@ -16,6 +18,8 @@ from ..utils import text_border, get_recruitment_available
 
 bconfig = BaiduOCRConfig.parse_obj(get_driver().config.dict())
 pcfg = PathConfig.parse_obj(get_driver().config.dict())
+font_path = Path(pcfg.arknights_font_path).absolute()
+gamedata_path = Path(pcfg.arknights_gamedata_path).absolute()
 
 
 async def baidu_ocr(image_url: str, client: httpx.AsyncClient) -> Set[str]:
@@ -30,11 +34,11 @@ async def baidu_ocr(image_url: str, client: httpx.AsyncClient) -> Set[str]:
     try:
         all_words = {_["words"] for _ in response.json()["words_result"]}
     except KeyError as e:
-        logger.warning("百度ocr识别失败！")
-        logger.warning(f"{response.json()}")
+        logger.error("百度ocr识别失败:")
+        logger.error(f"{response.json()}")
         return None
 
-    async with aopen(pcfg.arknights_gamedata_path / "excel" / "gacha_table.json", "r", encoding="utf-8") as fp:
+    async with aopen(gamedata_path / "excel" / "gacha_table.json", "r", encoding="utf-8") as fp:
         tags = {_["tagName"] for _ in json.loads(await fp.read())["gachaTags"]}
 
     return {_ for _ in all_words if _ in tags}
@@ -80,12 +84,12 @@ def process_word_tags(tags: list):
     return tags
 
 
-class DrawRecruitmentCard:
+class BuildRecruitmentCard:
     """绘图"""
     def __init__(self, result_groups: List[Dict[str, Any]]):
         self.result_groups = result_groups
-        self.font_norm = ImageFont.truetype(str(pcfg.arknights_font_path / "Arknights-zh.otf"), 24)
-        self.font_small = ImageFont.truetype(str(pcfg.arknights_font_path / "Arknights-zh.otf"), 20)
+        self.font_norm = ImageFont.truetype(str(font_path / "Arknights-zh.otf"), 24)
+        self.font_small = ImageFont.truetype(str(font_path / "Arknights-zh.otf"), 20)
 
         self.result_images: List[Tuple[Image, int]] = []
 
@@ -230,7 +234,7 @@ class DrawRecruitmentCard:
     async def build_target_characters(tags: set) -> List[Dict[str, Union[str, List[Character]]]]:
         """tag-干员组合"""
         chts = [(await Character().init(_)) for _ in await get_recruitment_available()]  # 所有可公招的干员
-        combs = DrawRecruitmentCard.build_combinations(tags)  # 所有可能的tag组合
+        combs = BuildRecruitmentCard.build_combinations(tags)  # 所有可能的tag组合
         cht_tags = {  # 这一条提出来，省了1k倍速度
             _.name: await _.get_tags_for_open_recruitment()
             for _ in chts
@@ -259,7 +263,7 @@ class DrawRecruitmentCard:
 
 
 __all__ = [
-    "DrawRecruitmentCard",
+    "BuildRecruitmentCard",
     "process_word_tags",
     "baidu_ocr"
 ]

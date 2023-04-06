@@ -7,7 +7,7 @@
 5. 模组任务
 6. 基本信息: HandbookInfo
 """
-from nonebot import on_command
+from nonebot import on_command, logger
 from nonebot.plugin import PluginMetadata
 from nonebot.params import CommandArg
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
@@ -15,6 +15,7 @@ from nonebot.adapters.onebot.v11 import Message, MessageSegment
 from .data_source import BuildOperatorInfo
 from ..core.models_v3 import Character
 from ..exceptions import *
+from ..utils.general import nickname_swap
 
 operator_info = on_command("方舟干员", aliases={"干员"})
 
@@ -26,11 +27,16 @@ async def _(arg: Message = CommandArg()):
         await operator_info.finish()
 
     try:
+        name = await nickname_swap(name)
         cht = await Character.parse_name(name)
     except NamedCharacterNotExistException as e:
         await operator_info.finish(e.msg, at_sender=True)
 
-    img_bytes = await BuildOperatorInfo(cht=cht).build_whole_image()
+    try:
+        img_bytes = await BuildOperatorInfo(cht=cht).build_whole_image()
+    except FileNotFoundError as e:
+        logger.error("干员信息缺失，请使用 “更新方舟素材” 命令更新游戏素材后重试")
+        await operator_info.finish(f"缺失干员信息：{name}, 请使用 “更新方舟素材” 命令更新游戏素材后重试")
     await operator_info.finish(MessageSegment.image(img_bytes))
 
 

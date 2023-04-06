@@ -1,6 +1,9 @@
 """数据库相关"""
+from pathlib import Path
+
 import tortoise.exceptions
 from tortoise import Tortoise
+from tortoise.models import Model
 from aiofiles import open as aopen
 import json
 import asyncio
@@ -14,6 +17,8 @@ from ..core.database import *
 
 driver = get_driver()
 pcfg = PathConfig.parse_obj(driver.config.dict())
+db_url = Path(pcfg.arknights_db_url).absolute()
+gamedata_path = Path(pcfg.arknights_gamedata_path).absolute()
 # pcfg = PathConfig()
 
 class ArknightsDB:
@@ -22,14 +27,14 @@ class ArknightsDB:
     async def init_db():
         """建库，建表"""
         logger.info("##### ARKNIGHTS-SQLITE CONNECTING ...")
-        await aos.makedirs(pcfg.arknights_db_url.parent, exist_ok=True)
+        await aos.makedirs(db_url.parent, exist_ok=True)
         await Tortoise.init(
             {
                 "connections": {
                     "arknights": {
                         "engine": "tortoise.backends.sqlite",
                         "credentials": {
-                            "file_path": f"{pcfg.arknights_db_url}"
+                            "file_path": f"{db_url}"
                         }
                     }
                 },
@@ -55,23 +60,32 @@ class ArknightsDB:
         await Tortoise.close_connections()
         logger.info("===== ARKNIGHTS-SQLITE CONNECTION CLOSED.")
 
+    """ INIT DATA"""
     @staticmethod
-    async def init_data():
+    async def init_data(force: bool = False):
         """填充数据"""
         logger.info("##### ARKNIGHTS-SQLITE DATA ALL INITIATING ...")
-        await ArknightsDB._init_building_buff()
-        await ArknightsDB._init_character()
-        await ArknightsDB._init_constance()
-        await ArknightsDB._init_equip()
-        await ArknightsDB._init_gacha_pool()
-        await ArknightsDB._init_handbook_info()
-        await ArknightsDB._init_item()
-        await ArknightsDB._init_skill()
+        try:
+            await ArknightsDB._init_building_buff(force)
+            await ArknightsDB._init_character(force)
+            await ArknightsDB._init_constance(force)
+            await ArknightsDB._init_equip(force)
+            await ArknightsDB._init_gacha_pool(force)
+            await ArknightsDB._init_handbook_info(force)
+            await ArknightsDB._init_item(force)
+            await ArknightsDB._init_skill(force)
+            await ArknightsDB._init_skin(force)
+        except (tortoise.exceptions.OperationalError, tortoise.exceptions.FieldError) as e:
+            await ArknightsDB.drop_data()
+            await ArknightsDB.init_db()
         logger.info("===== ARKNIGHTS-SQLITE DATA ALL INITIATED")
 
     @staticmethod
-    async def _init_building_buff():
-        async with aopen(pcfg.arknights_gamedata_path / "excel" / "building_data.json", "r", encoding="utf-8") as fp:
+    async def _init_building_buff(force: bool = False):
+        if not await ArknightsDB.is_table_empty(BuildingBuffModel) and not force:
+            logger.info("\t- BuildingBuff data already initiated.")
+            return
+        async with aopen(gamedata_path / "excel" / "building_data.json", "r", encoding="utf-8") as fp:
             data = await fp.read()
         data = json.loads(data)
         buff_data = data["buffs"]
@@ -94,24 +108,38 @@ class ArknightsDB:
         logger.info("\t- WorkshopFormula data initiated.")
 
     @staticmethod
-    async def _init_character():
-        async with aopen(pcfg.arknights_gamedata_path / "excel" / "character_table.json", "r", encoding="utf-8") as fp:
+    async def _init_character(force: bool = False):
+        if not await ArknightsDB.is_table_empty(CharacterModel) and not force:
+            logger.info("\t- Character data already initiated.")
+            return
+        async with aopen(gamedata_path / "excel" / "character_table.json", "r", encoding="utf-8") as fp:
             data = await fp.read()
-        async with aopen(pcfg.arknights_gamedata_path / "excel" / "char_patch_table.json", "r", encoding="utf-8") as fp:
+        async with aopen(gamedata_path / "excel" / "char_patch_table.json", "r", encoding="utf-8") as fp:
             data_ = await fp.read()
         data = json.loads(data)
         data_ = json.loads(data_)["patchChars"]
+        data_["char_1001_amiya2"]["name"] = "近卫阿米娅"
         data.update(data_)
-        tasks = {
-            CharacterModel.update_or_create(charId=k, **v)
-            for k, v in data.items()
-        }
+
+        amiya = await CharacterModel.filter(charId="char_1001_amiya2", name='阿米娅').first()
+        if amiya:
+            await amiya.delete()
+
+        tasks = set()
+        for k, v in data.items():
+            if "classicPotentialItemId" in v:
+                tasks.add(CharacterModel.update_or_create(charId=k, **v))
+            else:
+                tasks.add(CharacterModel.update_or_create(charId=k, classicPotentialItemId=None, **v))
         await asyncio.gather(*tasks)
         logger.info("\t- Character data initiated.")
 
     @staticmethod
-    async def _init_constance():
-        async with aopen(pcfg.arknights_gamedata_path / "excel" / "gamedata_const.json", "r", encoding="utf-8") as fp:
+    async def _init_constance(force: bool = False):
+        if not await ArknightsDB.is_table_empty(ConstanceModel) and not force:
+            logger.info("\t- Constance data already initiated.")
+            return
+        async with aopen(gamedata_path / "excel" / "gamedata_const.json", "r", encoding="utf-8") as fp:
             data = await fp.read()
         data = json.loads(data)
         tasks = {
@@ -151,8 +179,11 @@ class ArknightsDB:
         logger.info("\t\t- TermDescription data initiated.")
 
     @staticmethod
-    async def _init_equip():
-        async with aopen(pcfg.arknights_gamedata_path / "excel" / "uniequip_table.json", "r", encoding="utf-8") as fp:
+    async def _init_equip(force: bool = False):
+        if not await ArknightsDB.is_table_empty(EquipModel) and not force:
+            logger.info("\t- Equip data already initiated.")
+            return
+        async with aopen(gamedata_path / "excel" / "uniequip_table.json", "r", encoding="utf-8") as fp:
             data = await fp.read()
         data = json.loads(data)
         equip_dict = data["equipDict"]
@@ -181,8 +212,11 @@ class ArknightsDB:
         logger.info("\t- Equip data initiated")
 
     @staticmethod
-    async def _init_gacha_pool():
-        async with aopen(pcfg.arknights_gamedata_path / "excel" / "gacha_table.json", "r", encoding="utf-8") as fp:
+    async def _init_gacha_pool(force: bool = False):
+        if not await ArknightsDB.is_table_empty(GachaPoolModel) and not force:
+            logger.info("\t- GachaPool data already initiated.")
+            return
+        async with aopen(gamedata_path / "excel" / "gacha_table.json", "r", encoding="utf-8") as fp:
             data = await fp.read()
         data = json.loads(data)["gachaPoolClient"]
         tasks = {
@@ -193,8 +227,11 @@ class ArknightsDB:
         logger.info("\t- GachaPool data initiated")
 
     @staticmethod
-    async def _init_handbook_info():
-        async with aopen(pcfg.arknights_gamedata_path / "excel" / "handbook_info_table.json", "r", encoding="utf-8") as fp:
+    async def _init_handbook_info(force: bool = False):
+        if not await ArknightsDB.is_table_empty(HandbookInfoModel) and not force:
+            logger.info("\t- HandbookInfo data already initiated.")
+            return
+        async with aopen(gamedata_path / "excel" / "handbook_info_table.json", "r", encoding="utf-8") as fp:
             data = await fp.read()
         data = json.loads(data)["handbookDict"]
         tasks = {
@@ -210,8 +247,11 @@ class ArknightsDB:
         logger.info("\t- HandbookInfo data initiated.")
 
     @staticmethod
-    async def _init_item():
-        async with aopen(pcfg.arknights_gamedata_path / "excel" / "item_table.json", "r", encoding="utf-8") as fp:
+    async def _init_item(force: bool = False):
+        if not await ArknightsDB.is_table_empty(ItemModel) and not force:
+            logger.info("\t- Item data already initiated.")
+            return
+        async with aopen(gamedata_path / "excel" / "item_table.json", "r", encoding="utf-8") as fp:
             data = await fp.read()
         data = json.loads(data)["items"]
         tasks = {
@@ -222,8 +262,11 @@ class ArknightsDB:
         logger.info("\t- Item data initiated")
 
     @staticmethod
-    async def _init_skill():
-        async with aopen(pcfg.arknights_gamedata_path / "excel" / "skill_table.json", "r", encoding="utf-8") as fp:
+    async def _init_skill(force: bool = False):
+        if not await ArknightsDB.is_table_empty(SkillModel) and not force:
+            logger.info("\t- Skill data already initiated.")
+            return
+        async with aopen(gamedata_path / "excel" / "skill_table.json", "r", encoding="utf-8") as fp:
             data = await fp.read()
         data = json.loads(data)
         tasks = {
@@ -239,6 +282,44 @@ class ArknightsDB:
         await asyncio.gather(*tasks)
         logger.info("\t- Skill data initiated")
 
+    @staticmethod
+    async def _init_skin(force: bool = False):
+        if not await ArknightsDB.is_table_empty(SkinModel) and not force:
+            logger.info("\t- Skin data already initiated.")
+            return
+        async with aopen(gamedata_path / "excel" / "skin_table.json", "r", encoding="utf-8") as fp:
+            data = await fp.read()
+        data = json.loads(data)["charSkins"]
+        tasks = {
+            SkinModel.update_or_create(**v)
+            for _, v in data.items()
+        }
+        await asyncio.gather(*tasks)
+        logger.info("\t- Skin data initiated")
+
+    """ DROP DATA """
+    @staticmethod
+    async def drop_data():
+        """填充数据"""
+        logger.warning("***** ARKNIGHTS-SQLITE DATA ALL DROPPING ...")
+        conn = Tortoise.get_connection("arknights")
+        await conn.db_delete()
+        logger.warning("***** ARKNIGHTS-SQLITE DATA ALL DROPPED")
+
+    @staticmethod
+    async def is_table_empty(model: Model) -> bool:
+        """已经有数据就不要再 init 了"""
+        count = await model.all().count()
+        return count == 0
+
+    @staticmethod
+    async def is_insert_new_column(model: Model) -> bool:
+        """改模型了"""
+        try:
+            await model.filter()
+        except tortoise.exceptions.OperationalError as e:
+            return True
+        return False
 
 @driver.on_bot_connect  # 不能 on_startup, 要先下资源再初始化数据库
 async def _init_db():

@@ -1,4 +1,5 @@
 """与tortoise-orm对接，默认数据库是已经连接好的"""
+from pathlib import Path
 from typing import Optional, List, Dict, Any
 from PIL import Image
 import re
@@ -16,9 +17,11 @@ from ..exceptions import *
 
 
 pcfg = PathConfig.parse_obj(get_driver().config.dict())
-# pcfg = PathConfig()
+gameimage_path = Path(pcfg.arknights_gameimage_path).absolute()
+gamedata_path = Path(pcfg.arknights_gamedata_path).absolute()
 
-##### CHARACTER #####
+
+"""CHARACTER"""
 class Character:
     """干员"""
     def __init__(self, id_: str = None, data: dict = None):
@@ -47,7 +50,7 @@ class Character:
     @staticmethod
     async def parse_name(name: str) -> Optional["Character"]:
         """根据名称查"""
-        data = await CharacterModel.filter(name=name)
+        data = await CharacterModel.filter(name=name).exclude(itemUsage=None)
         if not data:
             raise NamedCharacterNotExistException(details=name)
         return await Character().init(id_=data[0].charId, data=data[0].__dict__) if data else None
@@ -124,11 +127,6 @@ class Character:
             result.append(cht)
         return result
 
-        # return [
-        #     await Character().init(id_=d.charId, data=d.__dict__)
-        #     for d in data
-        # ] if data else []
-
     @property
     def id(self) -> str:
         """代码名(键值)"""
@@ -166,7 +164,7 @@ class Character:
         """特性，纯文字"""
         desc = self.description
         if "<" in desc and ">" in desc:
-            desc = re.split(r"<[@|$|/].*?>", desc)
+            desc = re.split(r"<[@$/].*?>", desc)
             desc = "".join(desc)
         if self.trait:
             desc = self.trait[0].override_description_plain or desc
@@ -353,6 +351,18 @@ class Character:
         ]
 
     # 不在 arknights_character_table 中的：
+    async def get_skins(self) -> List["Skin"]:
+        """干员的所有皮肤"""
+        data = await SkinModel.filter(charId=self._id)
+        if not data:
+            return []
+
+        result = []
+        for d in data:
+            skin = await Skin().init(id_=d.__dict__["skinId"], data=d.__dict__)
+            result.append(skin)
+        return result
+
     async def get_equips(self) -> List["Equip"]:
         """干员有的模组"""
         data = await EquipModel.filter(character=self._id, uniEquipIcon__not="original")
@@ -387,7 +397,7 @@ class Character:
 
     @property
     def avatar(self) -> Image:
-        return self._avatar or Image.open(pcfg.arknights_gameimage_path / "avatar" / f"{self.id}.png")
+        return self._avatar or Image.open(gameimage_path / "avatar" / f"{self.id}.png")
 
     @avatar.setter
     def avatar(self, avatar: Image):
@@ -397,9 +407,9 @@ class Character:
     def skin(self) -> Image:
         """立绘(优先精二)"""
         try:
-            return Image.open(pcfg.arknights_gameimage_path / "skin" / f"{self.id}_2b.png")
+            return Image.open(gameimage_path / "skin" / f"{self.id}_2b.png")
         except FileNotFoundError:
-            return Image.open(pcfg.arknights_gameimage_path / "skin" / f"{self.id}_1b.png")
+            return Image.open(gameimage_path / "skin" / f"{self.id}_1b.png")
 
     # 方便使用的一些判断函数
     @property
@@ -447,11 +457,15 @@ class Character:
         return tags
 
     # 猜干员小游戏用
-
+    async def get_drawer(self) -> str:
+        """获取画师"""
+        skins = await self.get_skins()
+        return skins[0].drawers[0] if skins else ""
 
 
 class Attributes:
     """面板"""
+
     def __init__(self, cht: Character = None, data: Dict[str, Any] = None):
         self._data = data
         self._character = cht
@@ -589,6 +603,7 @@ class Attributes:
 
 class CharacterTrait:
     """特性，如领主远程降攻为80%"""
+
     def __init__(self, cht: Character, data):
         self._character = cht
         self._data = data
@@ -646,13 +661,14 @@ class CharacterTrait:
         """可读"""
         desc = self._override_description_blackboard
         if "<" in desc and ">" in desc:
-            desc = re.split(r"<[@|$|/].*?>", desc)
+            desc = re.split(r"<[@$/].*?>", desc)
             desc = "".join(desc)
         return desc
 
 
 class CharacterPhase:
     """精英化阶段"""
+
     def __init__(self, cht: Character = None, data: Dict[str, Any] = None, *, level: int = -1):
         self._character = cht
         self._data = data
@@ -690,7 +706,9 @@ class CharacterPhase:
     async def get_elite_cost(self) -> List["Item"]:
         """升级到这一阶段需要材料"""
         cash = [
-            await Item().init(id_="4001", count=(await ConstanceModel.first()).__dict__["evolveGoldCost"][(await self.get_character()).rarity][self.level-1])  # 龙门币
+            await Item().init(id_="4001", count=
+            (await ConstanceModel.first()).__dict__["evolveGoldCost"][(await self.get_character()).rarity][
+                self.level - 1])  # 龙门币
         ]
         if not self._data["evolveCost"]:
             return cash
@@ -715,12 +733,13 @@ class CharacterPhase:
 
 class CharacterTalent:
     """天赋"""
+
     def __init__(self, cht: Character, data: Dict[str, Any]):
         self._character = cht
         self._data = data
 
     def __str__(self):
-        return f"{self.cht} - {self.name}"
+        return f"{self.character} - {self.name}"
 
     @property
     def character(self) -> Character:
@@ -757,7 +776,7 @@ class CharacterTalent:
         """可读"""
         desc = self.description
         if "<" in desc and ">" in desc:
-            desc = re.split(r"<[@|$|/].*?>", desc)
+            desc = re.split(r"<[@$/].*?>", desc)
             desc = "".join(desc)
         return desc
 
@@ -774,6 +793,7 @@ class CharacterTalent:
 
 class CharacterPotentialRank:
     """潜能"""
+
     def __init__(self, cht: Character, data: Dict[str, Any]):
         self._character = cht
         self._data = data
@@ -806,6 +826,7 @@ class CharacterPotentialRank:
 
 class CharacterFavorKeyFrame:
     """好感度"""
+
     def __init__(self, cht: Character, data: Dict[str, Any], level: int = -1):
         self._character = cht
         self._data = data
@@ -829,6 +850,7 @@ class CharacterFavorKeyFrame:
 
 class CharacterAllSkill:
     """所有技能升级(0~7)"""
+
     def __init__(self, cht: Character, data: Dict[str, Any]):
         self._character = cht
         self._data = data
@@ -864,9 +886,10 @@ class CharacterAllSkill:
         # ]
 
 
-##### HANDBOOK #####
+"""HANDBOOK"""
 class HandbookInfo:
     """档案"""
+
     def __init__(self, id_: str = None, data: Dict[str, Any] = None):
         self._id = id_
         self._data = data
@@ -910,6 +933,7 @@ class HandbookInfo:
 
 class HandbookInfoStoryTextAudio:
     """基本档案数据等"""
+
     def __init__(self, handbook_info: HandbookInfo, data_basic: Dict, data_physic: Dict):
         self._handbook_info = handbook_info
         self._data_basic = data_basic
@@ -920,10 +944,9 @@ class HandbookInfoStoryTextAudio:
         """哪个档案的"""
         return self._handbook_info
 
-    @property
-    def symbol(self) -> str:
+    async def get_symbol(self) -> str:
         """代号，即 character.name"""
-        return self.handbook_info.character.name
+        return (await self.handbook_info.get_character()).name
 
     @property
     def sex(self) -> str:
@@ -956,9 +979,10 @@ class HandbookInfoStoryTextAudio:
         return re.findall(r"【[身高|高度]*】(.*?)\n", self._data_basic["storyText"])[0].strip()
 
 
-##### SKILL #####
+"""SKILL"""
 class Skill:
     """干员技能"""
+
     def __init__(self, id_: str = None, cht: Character = None, data: Dict[str, Any] = None, extra_data: Dict[str, Any] = None):
         self._id = id_
         self._character = cht
@@ -1003,7 +1027,7 @@ class Skill:
     def levels(self) -> List["SkillLevel"]:
         """七个等级的技能"""
         return [
-            SkillLevel(skill=self, data=d, level=idx+1)
+            SkillLevel(skill=self, data=d, level=idx + 1)
             for idx, d in enumerate(self._data["levels"])
         ]
 
@@ -1063,15 +1087,16 @@ class Skill:
     @property
     def icon(self) -> Image:
         """技能图标"""
-        return Image.open(pcfg.arknights_gameimage_path / "skill" / f"skill_icon_{self.icon_id or self.id}.png")
+        return Image.open(gameimage_path / "skill" / f"skill_icon_{self.icon_id or self.id}.png")
 
     def rank(self, lvl: int = 0) -> Image:
         """专精图标"""
-        return Image.open(pcfg.arknights_gameimage_path / "ui" / "rank" / f"m-{lvl}.png")
+        return Image.open(gameimage_path / "ui" / "rank" / f"m-{lvl}.png")
 
 
 class SkillLevelUpCondition:
     """技能专精"""
+
     def __init__(self, skill: Skill, data: Dict):
         self._skill = skill
         self._data = data
@@ -1113,6 +1138,7 @@ class SkillLevelUpCondition:
 
 class SkillLevel:
     """技能等级"""
+
     def __init__(self, skill: Skill, data: Dict, level: int):
         self._skill = skill
         self._data = data
@@ -1168,7 +1194,7 @@ class SkillLevel:
         """可读"""
         desc = self._description_blackboard
         if "<" in desc and ">" in desc:
-            desc = re.split(r"<[@|$|/].*?>", desc)
+            desc = re.split(r"<[@$/].*?>", desc)
             desc = "".join(desc)
         return desc
 
@@ -1199,6 +1225,7 @@ class SkillLevel:
 
 class SkillLevelSpData:
     """技能相关数据"""
+
     def __init__(self, data: Dict[str, Any]):
         self._data = data
 
@@ -1250,9 +1277,10 @@ class UnlockCondition:
         return self._data.get("favor", 0)
 
 
-##### ITEM #####
+"""ITEM"""
 class Item:
     """物品"""
+
     def __init__(self, id_: str = None, data: Dict[str, Any] = None, *, count: int = 0, weight: float = 100):
         self._id = id_
         self._count = count  # 有数量需求时填
@@ -1323,7 +1351,7 @@ class Item:
         """可读"""
         desc = self.description
         if "<" in desc and ">" in desc:
-            desc = re.split(r"<[@|$|/].*?>", desc)
+            desc = re.split(r"<[@$/].*?>", desc)
             desc = "".join(desc)
         return desc
 
@@ -1382,17 +1410,18 @@ class Item:
         #     await WorkshopFormula().init(id_=_["formulaId"])
         #     for _ in self._data["buildingProductList"]
         # ] if self._data["buildingProductList"] else []
-    
+
     # 不在 arknights_item_table 中的：
     @property
     def icon(self) -> Image:
         """技能图标"""
-        return Image.open(pcfg.arknights_gameimage_path / "item" / f"{self.icon_id or self.id}.png")
+        return Image.open(gameimage_path / "item" / f"{self.icon_id or self.id}.png")
 
 
-##### WORKSHOP_FORMULA #####
+"""WORKSHOP_FORMULA"""
 class WorkshopFormula:
     """制造站配方"""
+
     def __init__(self, id_: str = None, data: Dict[str, Any] = None):
         self._id = id_
         self._data = data
@@ -1508,9 +1537,10 @@ class WorkshopFormula:
         return
 
 
-##### EQUIP #####
+"""EQUIP"""
 class Equip:
     """模组"""
+
     def __init__(self, id_: str = None, data: Dict = None):
         self._id = id_
         self._data = data
@@ -1527,15 +1557,14 @@ class Equip:
         return self
 
     def __str__(self):
-        return f"{self.character} - {self.name}({self.id})"
+        return f"{self.name}({self.id})"
 
     def __repr__(self):
         return self.__str__()
 
-    @property
-    def character(self) -> Character:
+    async def get_character(self) -> Character:
         """哪个干员的"""
-        return Character(id_=self._data["charId"])
+        return await Character().init(id_=self._data["charId"])
 
     @property
     def id(self) -> str:
@@ -1565,7 +1594,7 @@ class Equip:
     @property
     def type_name(self) -> str:
         """类型名"""
-        return f"{self._data['typeName1']}{'-' + self._data['typeName2'] if self._data['typeName2']!='None' else ''}"
+        return f"{self._data['typeName1']}{'-' + self._data['typeName2'] if self._data['typeName2'] != 'None' else ''}"
 
     @property
     def unlock_condition(self) -> "UnlockCondition":
@@ -1608,10 +1637,10 @@ class Equip:
     # 不在 arknights_equip_table 中的:
     def rank(self, lvl: int = 0):
         """模组1,2,3级图标"""
-        return Image.open(pcfg.arknights_gameimage_path / "equip" / "stage" / f"img_stg{lvl}.png")
+        return Image.open(gameimage_path / "equip" / "stage" / f"img_stg{lvl}.png")
 
 
-##### GACHA_POOL #####
+"""GACHA_POOL"""
 class GachaPool:
     def __init__(self, id_: str = None, data: Dict = None):
         self._id = id_
@@ -1633,6 +1662,64 @@ class GachaPool:
 
     def __repr__(self):
         return self.__str__()
+
+    @staticmethod
+    async def parse_name(name: str) -> Optional["GachaPool"]:
+        """根据名称查"""
+        data = await GachaPoolModel.filter(gachaPoolName=name).first()
+        if not data:
+            raise NamedPoolNotExistException(details=name)
+        return await GachaPool().init(id_=data.gachaPoolId, data=data.__dict__) if data else None
+
+    @staticmethod
+    async def random(
+            named: bool = True,
+            rule: str = None
+    ) -> Optional["GachaPool"]:
+        """
+        随机返回池子
+        :param named: 有池子专属名字
+        :param rule: 池子类型：ATTAIN, NORMAL, LIMITED, LINKAGE
+        :return:
+        """
+        flags_ex = {}
+        flags = {}
+        if named:
+            flags_ex["gachaPoolName"] = "适合多种场合的强力干员"
+        if rule:
+            flags["gachaRuleType"] = rule if rule in {"ATTAIN", "NORMAL", "LIMITED", "LINKAGE"} else "NORMAL"
+
+        data = await GachaPoolModel.exclude(**flags_ex).filter(**flags).annotate(order=Random()).order_by("order")
+        if not data:
+            return None
+        return await GachaPool().init(id_=data[0].gachaPoolId, data=data[0].__dict__) if data else None
+
+    @staticmethod
+    async def all(
+            named: bool = True,
+            rule: str = None
+    ) -> List["GachaPool"]:
+        """
+        返回所有池子
+        :param named: 有池子专属名字
+        :param rule: 池子类型：ATTAIN, NORMAL, LIMITED, LINKAGE
+        :return:
+        """
+        flags_ex = {}
+        flags = {}
+        if named:
+            flags_ex["gachaPoolName"] = "适合多种场合的强力干员"
+        if rule:
+            flags["gachaRuleType"] = rule if rule in {"ATTAIN", "NORMAL", "LIMITED", "LINKAGE"} else "NORMAL"
+        data = await GachaPoolModel.exclude(**flags_ex).filter(**flags).all()
+        if not data:
+            return []
+
+        result = []
+        for d in data:
+            cht = await GachaPool().init(id_=d.gachaPoolId, data=d.__dict__)
+            result.append(cht)
+        return result
 
     @property
     def id(self) -> str:
@@ -1675,10 +1762,161 @@ class GachaPool:
         return self._data["gachaRuleType"]
 
 
+"""SKIN"""
+class Skin:
+    """皮肤"""
+
+    def __init__(self, id_: str = None, data: dict = None):
+        self._id = id_
+        self._data = data
+
+    async def init(self, id_: str, data: dict = None) -> "Skin":
+        """异步实例化"""
+        self._id = id_
+        self._data = data
+        if not self._data:
+            data = await SkinModel.filter(skinId=self._id).first()
+            if not data:
+                raise  # TODO
+            self._data = data.__dict__
+        return self
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __str__(self):
+        return f"{self.name}({self.id})"
+
+    async def get_character(self) -> "Character":
+        """哪个干员的"""
+        return await Character().init(id_=self._data["charId"])
+
+    @property
+    def id(self) -> str:
+        """皮肤代码"""
+        return self._data["skinId"]
+
+    @property
+    def illust_id(self) -> str:
+        """画师代码"""
+        return self._data["illustId"]
+
+    @property
+    def avatar_id(self) -> str:
+        """干员头图代码"""
+        return self._data["avatarId"]
+
+    @property
+    def portrait_id(self) -> str:
+        """干员半身像代码"""
+        return self._data["portraitId"]
+
+    @property
+    def building_id(self) -> str:
+        """?"""
+        return self._data["buildingId"]
+
+    @property
+    def is_buy_skin(self) -> bool:
+        """?"""
+        return self._data["isBuySkin"]
+
+    @property
+    def display_skin(self) -> "SkinDisplaySkin":
+        """显示信息"""
+        return SkinDisplaySkin(skin=self, data=self._data["displaySkin"])
+
+    # 不在 table 中的
+    @property
+    def name(self) -> str:
+        """名称"""
+        return self.display_skin.name or self.display_skin.group_name
+
+    @property
+    def description(self) -> str:
+        """介绍"""
+        return self.display_skin.description or self.display_skin.content
+
+    @property
+    def drawers(self) -> List[str]:
+        """画师们"""
+        return self.display_skin.drawers
+
+
+class SkinDisplaySkin:
+    """显示信息"""
+
+    def __init__(self, skin: "Skin", data):
+        self._skin = skin
+        self._data = data
+
+    @property
+    def skin(self) -> "Skin":
+        """哪个皮肤的"""
+        return self._skin
+
+    @property
+    def name(self) -> str:
+        """皮肤名"""
+        return self._data["skinName"]
+
+    @property
+    def drawers(self) -> List[str]:
+        """画师们"""
+        return self._data["drawerList"]
+
+    @property
+    def group_id(self) -> str:
+        """分类代码，默认为 “ILLUST_0” """
+        return self._data["skinGroupId"]
+
+    @property
+    def group_name(self) -> str:
+        """分类名，默认为 “默认服装” """
+        return self._data["skinGroupName"]
+
+    @property
+    def content(self) -> str:
+        """介绍？"""
+        return self._data["content"]
+
+    @property
+    def dialog(self) -> str:
+        """也是介绍？"""
+        return self._data["dialog"]
+
+    @property
+    def usage(self) -> str:
+        """还是介绍？"""
+        return self._data["usage"]
+
+    @property
+    def description(self) -> str:
+        """好多介绍"""
+        return self._data["description"]
+
+    @property
+    def obtain(self) -> str:
+        """获取方式"""
+        return self._data["obtainApproach"]
+
+    @property
+    def time(self) -> int:
+        """获取时间"""
+        return self._data["getTime"]
+
+
+"""TODO"""
+class Stage: ...
+class Room: ...
+class Mission: ...
+
+
 __all__ = [
     "Character",
     "Skill",
     "Item",
     "Equip",
-    "GachaPool"
+    "GachaPool",
+    "Skin"
 ]

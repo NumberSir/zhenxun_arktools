@@ -8,14 +8,20 @@ from nonebot import logger, get_driver
 
 import httpx
 
-from ..configs import PathConfig, ProxyConfig
+from ..configs import PathConfig, ProxyConfig, SchedulerConfig
 
 driver = get_driver()
 pcfg = PathConfig.parse_obj(get_driver().config.dict())
-xcfg = ProxyConfig.parse_obj(get_driver().config.dict())
+data_path = Path(pcfg.arknights_data_path).absolute()
+gamedata_path = Path(pcfg.arknights_gamedata_path).absolute()
+gameimage_path = Path(pcfg.arknights_gameimage_path).absolute()
+font_path = Path(pcfg.arknights_font_path).absolute()
 
+xcfg = ProxyConfig.parse_obj(get_driver().config.dict())
 BASE_URL_RAW = xcfg.github_raw  # 镜像
 BASE_URL_SITE = xcfg.github_site
+
+scfg = SchedulerConfig.parse_obj(get_driver().config.dict())
 
 REPOSITORIES = {
     "gamedata": "/Kengxxiao/ArknightsGameData/master",
@@ -31,11 +37,12 @@ FILES = {
         "zh_CN/gamedata/excel/data_version.txt",            # 数据版本
         "zh_CN/gamedata/excel/gamedata_const.json",         # 游戏常数
         "zh_CN/gamedata/excel/gacha_table.json",            # 公招相关
-        "zh_CN/gamedata/excel/item_table.json",   # 物品表
+        "zh_CN/gamedata/excel/item_table.json",             # 物品表
         "zh_CN/gamedata/excel/handbook_info_table.json",    # 档案表
-        "zh_CN/gamedata/excel/skill_table.json",  # 技能表
+        "zh_CN/gamedata/excel/skill_table.json",            # 技能表
         "zh_CN/gamedata/excel/uniequip_table.json",         # 模组表、子职业映射
         "zh_CN/gamedata/excel/handbook_team_table.json",    # 干员阵营
+        "zh_CN/gamedata/excel/skin_table.json",             # 皮肤
     ]
 }
 
@@ -81,17 +88,17 @@ class ArknightsGameData:
     async def get_local_version(self) -> str:
         """获取本地版本"""
         try:
-            async with aopen(pcfg.arknights_gamedata_path / "excel" / "data_version.txt") as fp:
+            async with aopen(gamedata_path / "excel" / "data_version.txt") as fp:
                 data = await fp.read()
         except FileNotFoundError as e:
             return ""
-        return data.split("\n")[-2].split(":")[1]
+        return data.split(":")[-1].strip("\n").strip()
 
     async def get_latest_version(self) -> str:
         """获取最新版本"""
         url = f"{self._url}/zh_CN/gamedata/excel/data_version.txt"
         response = await self._client.get(url)
-        return response.text.split("\n")[-2].split(":")[1]  # eg: "31.4.0"
+        return response.text.split(":")[-1].strip("\n").strip()  # eg: "31.4.0"
 
     async def is_update_needed(self) -> bool:
         """是否要更新"""
@@ -99,7 +106,7 @@ class ArknightsGameData:
 
     async def download_files(self):
         """下载gamedata"""
-        tmp = Path(__file__).absolute().parent.parent.parent / "data" / "arknights" / "gamedata" / "excel"
+        tmp = gamedata_path / "excel"
         await aos.makedirs(tmp, exist_ok=True)
         logger.info("##### ARKNIGHTS GAMEDATA DOWNLOAD BEGIN ")
 
@@ -126,7 +133,7 @@ class ArknightsGameImage:
 
     async def download_files(self):
         """下载gameimage"""
-        tmp = Path(__file__).absolute().parent.parent.parent / "data" / "arknights" / "gameimage"
+        tmp = gameimage_path
         await aos.makedirs(tmp, exist_ok=True)
         logger.info("##### ARKNIGHTS GAMEIMAGE DOWNLOAD BEGIN ")
 
@@ -216,56 +223,76 @@ class ArknightsGameImage:
 
 
 async def download_extra_files(client: httpx.AsyncClient):
-    """下载字体、猜干员的图片素材"""
+    """下载猜干员的图片素材、干员外号昵称"""
     urls = [
-        f"{BASE_URL_RAW}/NumberSir/nonebot_plugin_arktools/main/nonebot_plugin_arktools/data/fonts/Arknights-en.ttf",
-        f"{BASE_URL_RAW}/NumberSir/nonebot_plugin_arktools/main/nonebot_plugin_arktools/data/fonts/Arknights-zh.otf",
         f"{BASE_URL_RAW}/NumberSir/nonebot_plugin_arktools/main/nonebot_plugin_arktools/data/guess_character/correct.png",
         f"{BASE_URL_RAW}/NumberSir/nonebot_plugin_arktools/main/nonebot_plugin_arktools/data/guess_character/down.png",
         f"{BASE_URL_RAW}/NumberSir/nonebot_plugin_arktools/main/nonebot_plugin_arktools/data/guess_character/up.png",
         f"{BASE_URL_RAW}/NumberSir/nonebot_plugin_arktools/main/nonebot_plugin_arktools/data/guess_character/vague.png",
         f"{BASE_URL_RAW}/NumberSir/nonebot_plugin_arktools/main/nonebot_plugin_arktools/data/guess_character/wrong.png",
+
+        f"{BASE_URL_RAW}/NumberSir/nonebot_plugin_arktools/main/nonebot_plugin_arktools/data/arknights/processed_data/nicknames.json",
     ]
     logger.info("##### EXTRA FILES DOWNLOAD BEGIN")
-    await aos.makedirs(pcfg.arknights_data_path / "fonts", exist_ok=True)
-    await aos.makedirs(pcfg.arknights_data_path / "guess_character", exist_ok=True)
+    await aos.makedirs(data_path / "guess_character", exist_ok=True)
+    await aos.makedirs(data_path / "arknights/processed_data", exist_ok=True)
     for url in urls:
-        path = url.split("data/")[-1]
-        if (pcfg.arknights_data_path / path).exists():
+        path = url.split("/data/")[-1]
+        if (data_path / path).exists():
             continue
         response = await client.get(url)
-        async with aopen(pcfg.arknights_data_path / path, "wb") as fp:
+        async with aopen(data_path / path, "wb") as fp:
             await fp.write(response.content)
             logger.info(f"\t- Extra file downloaded: {path}")
+    await download_fonts(client)
     logger.info("===== EXTRA FILES DOWNLOAD DONE")
+
+
+async def download_fonts(client: httpx.AsyncClient):
+    """下载字体"""
+    urls = [
+        f"{BASE_URL_RAW}/NumberSir/nonebot_plugin_arktools/main/nonebot_plugin_arktools/data/fonts/Arknights-en.ttf",
+        f"{BASE_URL_RAW}/NumberSir/nonebot_plugin_arktools/main/nonebot_plugin_arktools/data/fonts/Arknights-zh.otf",
+    ]
+    await aos.makedirs(font_path, exist_ok=True)
+    for url in urls:
+        path = url.split("/")[-1]
+        if (font_path / path).exists():
+            continue
+        response = await client.get(url)
+        async with aopen(font_path / path, "wb") as fp:
+            await fp.write(response.content)
+            logger.info(f"\t- Font file downloaded: {path}")
 
 
 @driver.on_startup
 async def _init_game_files():
-    async with httpx.AsyncClient(timeout=100) as client:
-        try:
-            await download_extra_files(client)
-        except (httpx.ConnectError, httpx.RemoteProtocolError, httpx.TimeoutException) as e:
-            logger.error("下载方舟额外素材请求出错或连接超时，请修改代理、重试或手动下载：")
-            logger.error("https://github.com/NumberSir/nonebot_plugin_arktools#%E5%90%AF%E5%8A%A8%E6%B3%A8%E6%84%8F")
+    if scfg.arknights_update_check_switch:
+        async with httpx.AsyncClient(timeout=100) as client:
+            try:
+                await download_extra_files(client)
+            except (httpx.ConnectError, httpx.RemoteProtocolError, httpx.TimeoutException) as e:
+                logger.error("下载方舟额外素材请求出错或连接超时，请修改代理、重试或手动下载：")
+                logger.error("https://github.com/NumberSir/nonebot_plugin_arktools#%E5%90%AF%E5%8A%A8%E6%B3%A8%E6%84%8F")
 
-        logger.info("检查方舟游戏素材版本中 ...")
-        is_latest = False
-        try:
-            if not await ArknightsGameData(client).is_update_needed():
-                logger.info("方舟游戏素材当前为最新！")
-                is_latest = True
-        except (httpx.ConnectError, httpx.RemoteProtocolError, httpx.TimeoutException) as e:
-            logger.error("检查方舟素材版本请求出错或连接超时，请修改代理、重试或手动下载：")
-            logger.error("https://github.com/NumberSir/nonebot_plugin_arktools#%E5%90%AF%E5%8A%A8%E6%B3%A8%E6%84%8F")
-        else:
-            if not is_latest:
-                try:
-                    await ArknightsGameData(client).download_files()
-                    await ArknightsGameImage(client).download_files()
-                except (httpx.ConnectError, httpx.RemoteProtocolError, httpx.TimeoutException) as e:
-                    logger.error("下载方舟素材请求出错或连接超时，请修改代理、重试或手动下载：")
-                    logger.error("https://github.com/NumberSir/nonebot_plugin_arktools#%E5%90%AF%E5%8A%A8%E6%B3%A8%E6%84%8F")
+            logger.info("检查方舟游戏素材版本中 ...")
+            is_latest = False
+            try:
+                if not await ArknightsGameData(client).is_update_needed():
+                    logger.info("方舟游戏素材当前为最新！")
+                    is_latest = True
+            except (httpx.ConnectError, httpx.RemoteProtocolError, httpx.TimeoutException) as e:
+                logger.error("检查方舟素材版本请求出错或连接超时，请修改代理、重试或手动下载：")
+                logger.error("https://github.com/NumberSir/nonebot_plugin_arktools#%E5%90%AF%E5%8A%A8%E6%B3%A8%E6%84%8F")
+            else:
+                if not is_latest:
+                    logger.info("方舟游戏素材需要更新，开始下载素材...")
+                    try:
+                        await ArknightsGameData(client).download_files()
+                        await ArknightsGameImage(client).download_files()
+                    except (httpx.ConnectError, httpx.RemoteProtocolError, httpx.TimeoutException) as e:
+                        logger.error("下载方舟素材请求出错或连接超时，请修改代理、重试或手动下载：")
+                        logger.error("https://github.com/NumberSir/nonebot_plugin_arktools#%E5%90%AF%E5%8A%A8%E6%B3%A8%E6%84%8F")
 
 
 __all__ = [

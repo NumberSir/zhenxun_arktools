@@ -5,20 +5,23 @@ from pathlib import Path
 from typing import Union, Dict, List
 from nonebot import get_driver
 from aiofiles import open as aopen
+from nonebot import logger
 
 from ..configs import PathConfig
 
 
 pcfg = PathConfig.parse_obj(get_driver().config.dict())
+data_path = Path(pcfg.arknights_data_path).absolute()
+gamedata_path = Path(pcfg.arknights_gamedata_path).absolute()
 # pcfg = PathConfig()
 
-CHARACTER_FILE = pcfg.arknights_gamedata_path / "excel" / "character_table.json"
-ITEM_FILE = pcfg.arknights_gamedata_path / "excel" / "item_table.json"
-SUB_PROF_FILE = pcfg.arknights_gamedata_path / "excel" / "uniequip_table.json"
+CHARACTER_FILE = gamedata_path / "excel" / "character_table.json"
+ITEM_FILE = gamedata_path / "excel" / "item_table.json"
+SUB_PROF_FILE = gamedata_path / "excel" / "uniequip_table.json"
 EQUIP_FILE = SUB_PROF_FILE
-TEAM_FILE = pcfg.arknights_gamedata_path / "excel" / "handbook_team_table.json"
-SWAP_PATH = pcfg.arknights_data_path / "arknights" / "processed_data"
-GACHA_PATH = pcfg.arknights_gamedata_path / "excel" / "gacha_table.json"
+TEAM_FILE = gamedata_path / "excel" / "handbook_team_table.json"
+SWAP_PATH = data_path / "arknights" / "processed_data"
+GACHA_PATH = gamedata_path / "excel" / "gacha_table.json"
 
 
 async def _name_code_swap(
@@ -135,6 +138,37 @@ async def prof_swap(value: str, type_: str = "name2code") -> str:
     return data[type_][value]
 
 
+async def gacha_rule_swap(value: str, type_: str = "name2code") -> str:
+    """池子类型"""
+    data = {
+        "name2code": {
+            "春节": "ATTAIN",
+            "限定": "LIMITED",
+            "联动": "LINKAGE",
+            "普通": "NORMAL"
+        },
+        "code2name": {
+            "ATTAIN": "春节",
+            "LIMITED": "限定",
+            "LINKAGE": "联动",
+            "NORMAL": "普通"
+        }
+    }
+    return data[type_][value]
+
+
+async def nickname_swap(value: str) -> str:
+    """干员昵称/外号转换"""
+    swap_file = SWAP_PATH / "nicknames.json"
+    async with aopen(swap_file, "r", encoding="utf-8") as fp:
+        data = json.loads(await fp.read())
+
+    for k, v in data.items():
+        if value == k or value in v:
+            logger.info(f"{value} -> {k}")
+            return k
+    return value
+
 async def get_recruitment_available() -> List[str]:
     """获取可以公招获取的干员id们"""
     async with aopen(GACHA_PATH, "r", encoding="utf-8") as fp:
@@ -156,6 +190,9 @@ __all__ = [
     "equip_swap",
     "prof_swap",
     "faction_swap",
+    "gacha_rule_swap",
+
+    "nickname_swap",
 
     "get_recruitment_available"
 ]

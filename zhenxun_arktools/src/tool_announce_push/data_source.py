@@ -3,15 +3,16 @@ from typing import Optional, List
 from nonebot import get_driver
 from datetime import datetime
 
-from ..configs import PathConfig
+from ..configs import PathConfig, ProxyConfig
 from ..core.database import RSSNewsModel
 
 pcfg = PathConfig.parse_obj(get_driver().config.dict())
+xcfg = ProxyConfig.parse_obj(get_driver().config.dict())
 
 
 async def get_news() -> Optional[List["RSSNewsModel"]]:
     """游戏公告/新闻"""
-    url = "https://rsshub.app/arknights/news?filterout_title=封禁&limit=3"
+    url = f"{xcfg.rss_site}/arknights/news?filterout_title=封禁&limit=3"
     rss_data = feedparser.parse(url)
     if not rss_data or rss_data["status"] != 200:
         raise  # TODO
@@ -41,11 +42,3 @@ async def get_news() -> Optional[List["RSSNewsModel"]]:
 async def get_bilibili_dynamics():
     """B站动态"""
     ...
-
-# def get_plain_text(raw_text: str):
-#     """处理掉html标签"""
-#     raw_text = raw_text.replace("<br />", "\n").replace("<p>", "\n")
-#     tags = re.findall("<.*?>", raw_text)
-#     for _ in tags:
-#         raw_text = raw_text.replace(_, "")
-#     return unescape(raw_text)
