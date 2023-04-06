@@ -8,7 +8,6 @@
 6. 基本信息: HandbookInfo
 """
 from nonebot import on_command, logger
-from nonebot.plugin import PluginMetadata
 from nonebot.params import CommandArg
 from nonebot.adapters.onebot.v11 import Message, MessageSegment
 

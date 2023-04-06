@@ -2,16 +2,16 @@
 from datetime import datetime
 
 import tortoise.exceptions
-from nonebot import on_command, get_bot, logger, get_driver
+from nonebot import on_command, get_bot, logger
 from nonebot.adapters.onebot.v11 import GroupMessageEvent, Message, Bot, MessageSegment
 from nonebot.params import CommandArg
-from nonebot.plugin import PluginMetadata
 from nonebot_plugin_apscheduler import scheduler
 
-from ..configs.scheduler_config import SchedulerConfig
+from configs.config import Config
 from ..core.database import UserSanityModel
 
-scfg = SchedulerConfig.parse_obj(get_driver().config.dict())
+sanity_notify_interval = Config.get_config("zhenxun_arktools", "SANITY_NOTIFY_INTERVAL")
+sanity_notify_switch = Config.get_config("zhenxun_arktools", "SANITY_NOTIFY_SWITCH")
 
 add_notify = on_command("理智提醒", aliases={"ADDSAN"})
 check_notify = on_command("理智查看", aliases={"CHECKSAN"})
@@ -83,10 +83,10 @@ async def _(event: GroupMessageEvent):
 
 @scheduler.scheduled_job(
     "interval",
-    minutes=scfg.sanity_notify_interval,
+    minutes=sanity_notify_interval,
 )
 async def _():
-    if scfg.sanity_notify_switch:
+    if sanity_notify_switch:
         logger.debug("checking sanity...")
         try:
             bot: Bot = get_bot()

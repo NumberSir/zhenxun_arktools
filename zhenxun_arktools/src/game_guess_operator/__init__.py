@@ -1,6 +1,5 @@
 """猜干员，改自 wordle"""
 from nonebot import on_shell_command, on_command, on_message
-from nonebot.plugin import PluginMetadata
 from nonebot.params import ShellCommandArgv, CommandArg, EventPlainText
 from nonebot.exception import ParserExit
 from nonebot.rule import Rule, ArgumentParser, to_me

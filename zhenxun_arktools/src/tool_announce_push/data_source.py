@@ -1,18 +1,16 @@
 import feedparser
 from typing import Optional, List
-from nonebot import get_driver
 from datetime import datetime
 
-from ..configs import PathConfig, ProxyConfig
 from ..core.database import RSSNewsModel
+from configs.config import Config
 
-pcfg = PathConfig.parse_obj(get_driver().config.dict())
-xcfg = ProxyConfig.parse_obj(get_driver().config.dict())
+rss_site = Config.get_config("zhenxun_arktools", "RSS_SITE")
 
 
 async def get_news() -> Optional[List["RSSNewsModel"]]:
     """游戏公告/新闻"""
-    url = f"{xcfg.rss_site}/arknights/news?filterout_title=封禁&limit=3"
+    url = f"{rss_site}/arknights/news?filterout_title=封禁&limit=3"
     rss_data = feedparser.parse(url)
     if not rss_data or rss_data["status"] != 200:
         raise  # TODO

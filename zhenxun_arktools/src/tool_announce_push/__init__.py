@@ -6,15 +6,15 @@ from nonebot import logger, get_bot, on_command, get_driver
 from nonebot.adapters.onebot.v11 import Bot, MessageSegment, Message
 from nonebot.exception import ActionFailed
 from nonebot.params import CommandArg
-from nonebot.plugin import PluginMetadata
 from nonebot_plugin_apscheduler import scheduler
 from nonebot_plugin_htmlrender import html_to_pic
 
 from .data_source import get_news
-from ..configs.scheduler_config import SchedulerConfig
+from configs.config import Config
 from ..core.database import RSSNewsModel
 
-scfg = SchedulerConfig.parse_obj(get_driver().config.dict())
+announce_push_switch = Config.get_config("zhenxun_arktools", "ANNOUNCE_PUSH_SWITCH")
+announce_push_interval = Config.get_config("zhenxun_arktools", "ANNOUNCE_PUSH_INTERVAL")
 
 latest_news = on_command("方舟最新公告")
 add_group = on_command("添加方舟推送群", aliases={"ADDGROUP"})
@@ -112,10 +112,10 @@ async def _():
 
 @scheduler.scheduled_job(
     "interval",
-    minutes=scfg.announce_push_interval,
+    minutes=announce_push_interval,
 )
 async def _():
-    if scfg.announce_push_switch:
+    if announce_push_switch:
         logger.info("checking rss news...")
         try:
             bot: Bot = get_bot()

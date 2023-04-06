@@ -6,7 +6,6 @@ import re
 from tortoise.contrib.sqlite.functions import Random
 from nonebot import get_driver, logger
 
-from ..configs.path_config import PathConfig
 from ..core.database.game_sqlite import *
 from ..utils import (
     prof_swap,
@@ -14,12 +13,11 @@ from ..utils import (
     faction_swap
 )
 from ..exceptions import *
+from configs.config import Config
 
 
-pcfg = PathConfig.parse_obj(get_driver().config.dict())
-gameimage_path = Path(pcfg.arknights_gameimage_path).absolute()
-gamedata_path = Path(pcfg.arknights_gamedata_path).absolute()
-
+gameimage_path = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_GAMEIMAGE_PATH")).absolute()
+gamedata_path = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_GAMEDATA_PATH")).absolute()
 
 """CHARACTER"""
 class Character:

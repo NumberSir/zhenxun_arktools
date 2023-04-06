@@ -3,17 +3,14 @@ import json
 import os
 from pathlib import Path
 from typing import Union, Dict, List
-from nonebot import get_driver
 from aiofiles import open as aopen
 from nonebot import logger
 
-from ..configs import PathConfig
+from configs.config import Config
 
 
-pcfg = PathConfig.parse_obj(get_driver().config.dict())
-data_path = Path(pcfg.arknights_data_path).absolute()
-gamedata_path = Path(pcfg.arknights_gamedata_path).absolute()
-# pcfg = PathConfig()
+data_path = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_DATA_PATH")).absolute()
+gamedata_path = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_GAMEDATA_PATH")).absolute()
 
 CHARACTER_FILE = gamedata_path / "excel" / "character_table.json"
 ITEM_FILE = gamedata_path / "excel" / "item_table.json"

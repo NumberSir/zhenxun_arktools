@@ -10,17 +10,17 @@ from itertools import permutations
 import math
 from io import BytesIO
 
-from nonebot import get_driver, logger
+from nonebot import logger
 
 from ..core.models_v3 import Character
-from ..configs import BaiduOCRConfig, PathConfig
 from ..utils import text_border, get_recruitment_available
+from configs.config import Config
 
-bconfig = BaiduOCRConfig.parse_obj(get_driver().config.dict())
-pcfg = PathConfig.parse_obj(get_driver().config.dict())
-font_path = Path(pcfg.arknights_font_path).absolute()
-gamedata_path = Path(pcfg.arknights_gamedata_path).absolute()
 
+api_key = Config.get_config("zhenxun_arktools", "arknights_baidu_api_key")
+secret_key = Config.get_config("zhenxun_arktools", "arknights_baidu_secret_key")
+gamedata_path = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_GAMEDATA_PATH")).absolute()
+font_path = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_FONT_PATH")).absolute()
 
 async def baidu_ocr(image_url: str, client: httpx.AsyncClient) -> Set[str]:
     """百度ocr"""
@@ -49,8 +49,8 @@ async def get_baidu_ocr_access_token(client: httpx.AsyncClient) -> str:
     url = (
         f"https://aip.baidubce.com/oauth/2.0/token?"
         f"grant_type=client_credentials&"
-        f"client_id={bconfig.arknights_baidu_api_key}&"
-        f"client_secret={bconfig.arknights_baidu_secret_key}")
+        f"client_id={api_key}&"
+        f"client_secret={secret_key}")
     response = await client.post(url=url)
     data = response.json()
     try:

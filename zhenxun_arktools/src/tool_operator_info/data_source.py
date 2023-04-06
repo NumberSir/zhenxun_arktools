@@ -19,16 +19,12 @@ from io import BytesIO
 
 from ..core.models_v3 import Character
 from ..utils.image import text_border
-from ..configs.path_config import PathConfig
-
-from nonebot import get_driver
+from configs.config import Config
 
 
-pcfg = PathConfig.parse_obj(get_driver().config.dict())
-font_path = Path(pcfg.arknights_font_path).absolute()
-gameimage_path = Path(pcfg.arknights_gameimage_path).absolute()
-gamedata_path = Path(pcfg.arknights_gamedata_path).absolute()
-# pcfg = PathConfig()
+font_path = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_FONT_PATH")).absolute()
+gamedata_path = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_GAMEDATA_PATH")).absolute()
+gameimage_path = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_GAMEIMAGE_PATH")).absolute()
 
 
 class BuildOperatorInfo:

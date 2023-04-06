@@ -1,7 +1,7 @@
 """干员生日提醒"""
 from pathlib import Path
 
-from nonebot import on_command, get_driver, logger
+from nonebot import on_command, logger
 from nonebot.adapters.onebot.v11 import MessageSegment, Message
 from typing import List
 from datetime import datetime
@@ -11,11 +11,9 @@ from io import BytesIO
 
 from ..core.models_v3 import Character
 from ..utils import text_border
-from ..configs.path_config import PathConfig
+from configs.config import Config
 
-
-pcfg = PathConfig.parse_obj(get_driver().config.dict())
-font_path = Path(pcfg.arknights_font_path).absolute()
+font_path = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_FONT_PATH")).absolute()
 
 
 today_birthday = on_command("今日干员")

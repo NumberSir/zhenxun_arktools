@@ -1,7 +1,6 @@
 """公招筛选"""
 import httpx
 from nonebot import on_command, logger
-from nonebot.plugin import PluginMetadata
 from nonebot.params import Arg, RawCommand
 from nonebot.typing import T_State
 from nonebot.matcher import Matcher

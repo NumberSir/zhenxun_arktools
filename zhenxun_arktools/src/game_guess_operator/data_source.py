@@ -1,21 +1,17 @@
 from pathlib import Path
 
 from ..core.models_v3 import Character
-from ..configs.path_config import PathConfig
 
-from nonebot import get_driver
-
-from typing import List, Set
+from typing import List
 from enum import Enum
 from PIL import Image, ImageFont
 from PIL.ImageDraw import Draw
 from io import BytesIO
+from configs.config import Config
 
 
-driver = get_driver()
-pcfg = PathConfig.parse_obj(get_driver().config.dict())
-data_path = Path(pcfg.arknights_data_path).absolute()
-font_path = Path(pcfg.arknights_font_path).absolute()
+data_path = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_DATA_PATH")).absolute()
+font_path = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_FONT_PATH")).absolute()
 GUESS_IMG_PATH = data_path / "guess_character"
 
 

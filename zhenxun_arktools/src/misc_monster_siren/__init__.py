@@ -1,6 +1,5 @@
 """即点歌"""
 from nonebot import on_command
-from nonebot.plugin import PluginMetadata
 from nonebot.params import CommandArg, Arg
 from nonebot.matcher import Matcher
 from nonebot.adapters.onebot.v11 import Message

@@ -8,20 +8,18 @@ from nonebot import logger, get_driver
 
 import httpx
 
-from ..configs import PathConfig, ProxyConfig, SchedulerConfig
+from configs.config import Config
 
 driver = get_driver()
-pcfg = PathConfig.parse_obj(get_driver().config.dict())
-data_path = Path(pcfg.arknights_data_path).absolute()
-gamedata_path = Path(pcfg.arknights_gamedata_path).absolute()
-gameimage_path = Path(pcfg.arknights_gameimage_path).absolute()
-font_path = Path(pcfg.arknights_font_path).absolute()
+data_path = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_DATA_PATH")).absolute()
+font_path = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_FONT_PATH")).absolute()
+gamedata_path = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_GAMEDATA_PATH")).absolute()
+gameimage_path = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_GAMEIMAGE_PATH")).absolute()
 
-xcfg = ProxyConfig.parse_obj(get_driver().config.dict())
-BASE_URL_RAW = xcfg.github_raw  # 镜像
-BASE_URL_SITE = xcfg.github_site
+BASE_URL_RAW = Config.get_config("zhenxun_arktools", "GITHUB_RAW")
+BASE_URL_SITE = Config.get_config("zhenxun_arktools", "GITHUB_SITE")
 
-scfg = SchedulerConfig.parse_obj(get_driver().config.dict())
+update_check_switch = Config.get_config("zhenxun_arktools", "ARKNIGHTS_UPDATE_CHECK_SWITCH")
 
 REPOSITORIES = {
     "gamedata": "/Kengxxiao/ArknightsGameData/master",
@@ -267,7 +265,7 @@ async def download_fonts(client: httpx.AsyncClient):
 
 @driver.on_startup
 async def _init_game_files():
-    if scfg.arknights_update_check_switch:
+    if update_check_switch:
         async with httpx.AsyncClient(timeout=100) as client:
             try:
                 await download_extra_files(client)

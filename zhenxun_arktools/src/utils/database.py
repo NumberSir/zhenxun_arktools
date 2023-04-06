@@ -11,15 +11,13 @@ import re
 from aiofiles import os as aos
 from nonebot import get_driver, logger
 
-from ..configs.path_config import PathConfig
+from configs.config import Config
 from ..core.database import *
 
 
 driver = get_driver()
-pcfg = PathConfig.parse_obj(driver.config.dict())
-db_url = Path(pcfg.arknights_db_url).absolute()
-gamedata_path = Path(pcfg.arknights_gamedata_path).absolute()
-# pcfg = PathConfig()
+db_url = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_DB_URL")).absolute()
+gamedata_path = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_GAMEDATA_PATH")).absolute()
 
 class ArknightsDB:
     """初始化"""
