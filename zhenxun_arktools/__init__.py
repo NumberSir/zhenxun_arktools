@@ -1,4 +1,4 @@
-from .src import *
+
 from configs.config import Config
 
 __zx_plugin_name__ = "明日方舟工具箱"
@@ -138,3 +138,5 @@ Config.add_plugin_config(
     help_="启动bot时检测素材更新开关",
     default_value=True
 )
+
+from .src import *
