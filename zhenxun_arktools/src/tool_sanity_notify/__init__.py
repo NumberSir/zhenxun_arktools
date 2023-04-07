@@ -13,8 +13,8 @@ from ..core.database import UserSanityModel
 sanity_notify_interval = Config.get_config("zhenxun_arktools", "SANITY_NOTIFY_INTERVAL")
 sanity_notify_switch = Config.get_config("zhenxun_arktools", "SANITY_NOTIFY_SWITCH")
 
-add_notify = on_command("理智提醒", aliases={"ADDSAN"})
-check_notify = on_command("理智查看", aliases={"CHECKSAN"})
+add_notify = on_command("理智提醒", aliases={"ADDSAN"}, block=True)
+check_notify = on_command("理智查看", aliases={"CHECKSAN"}, block=True)
 
 
 @add_notify.handle()

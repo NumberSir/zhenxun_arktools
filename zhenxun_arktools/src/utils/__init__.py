@@ -8,8 +8,8 @@ from nonebot import on_command, logger
 import httpx
 
 
-update_game_resource = on_command("更新方舟素材")
-init_db = on_command("更新方舟数据库")
+update_game_resource = on_command("更新方舟素材", block=True)
+init_db = on_command("更新方舟数据库", block=True)
 
 
 @update_game_resource.handle()

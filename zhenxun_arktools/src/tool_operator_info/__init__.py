@@ -16,7 +16,7 @@ from ..core.models_v3 import Character
 from ..exceptions import *
 from ..utils.general import nickname_swap
 
-operator_info = on_command("方舟干员", aliases={"干员"})
+operator_info = on_command("方舟干员", aliases={"干员"}, block=True)
 
 
 @operator_info.handle()

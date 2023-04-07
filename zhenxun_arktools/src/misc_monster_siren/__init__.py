@@ -7,7 +7,7 @@ from nonebot.adapters.onebot.v11 import Message
 from .data_source import search_cloud, search_tencent
 
 
-siren = on_command("塞壬点歌")
+siren = on_command("塞壬点歌", block=True)
 
 
 @siren.handle()

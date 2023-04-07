@@ -16,7 +16,7 @@ from configs.config import Config
 font_path = Path(Config.get_config("zhenxun_arktools", "ARKNIGHTS_FONT_PATH")).absolute()
 
 
-today_birthday = on_command("今日干员")
+today_birthday = on_command("今日干员", block=True)
 
 
 @today_birthday.handle()

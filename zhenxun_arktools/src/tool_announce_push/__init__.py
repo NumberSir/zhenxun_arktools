@@ -16,10 +16,10 @@ from ..core.database import RSSNewsModel
 announce_push_switch = Config.get_config("zhenxun_arktools", "ANNOUNCE_PUSH_SWITCH")
 announce_push_interval = Config.get_config("zhenxun_arktools", "ANNOUNCE_PUSH_INTERVAL")
 
-latest_news = on_command("方舟最新公告")
-add_group = on_command("添加方舟推送群", aliases={"ADDGROUP"})
-del_group = on_command("删除方舟推送群", aliases={"DELGROUP"})
-get_group = on_command("查看方舟推送群", aliases={"GETGROUP"})
+latest_news = on_command("方舟最新公告", block=True)
+add_group = on_command("添加方舟推送群", aliases={"ADDGROUP"}, block=True)
+del_group = on_command("删除方舟推送群", aliases={"DELGROUP"}, block=True)
+get_group = on_command("查看方舟推送群", aliases={"GETGROUP"}, block=True)
 
 
 @latest_news.handle()

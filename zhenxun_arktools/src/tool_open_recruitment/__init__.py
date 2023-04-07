@@ -12,7 +12,7 @@ from typing import Union
 from .data_source import BuildRecruitmentCard, process_word_tags, baidu_ocr
 
 
-recruit = on_command("公招", aliases={"公开招募"})
+recruit = on_command("公招", aliases={"公开招募"}, block=True)
 
 
 @recruit.handle()
