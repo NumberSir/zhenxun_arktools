@@ -25,6 +25,7 @@ class ArknightsDB:
     async def init_db():
         """建库，建表"""
         logger.info("##### ARKNIGHTS-SQLITE CONNECTING ...")
+        await asyncio.sleep(10)
         await aos.makedirs(db_url.parent, exist_ok=True)
         await Tortoise.init(
             {

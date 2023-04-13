@@ -12,7 +12,9 @@ _✨ ——的[真寻](https://github.com/HibiKier/zhenxun_bot)适配 ✨_
 
 ### 前言
 
-原插件是 -> **[这个](https://github.com/NumberSir/nonebot_plugin_arktools)** <- 
+原插件是 -> **[这个](https://github.com/NumberSir/nonebot_plugin_arktools)** <-
+
+相关特性、使用方法、注意事项等请参考原插件
 
 不使用真寻的请前往原插件仓库
 
