@@ -132,6 +132,22 @@ Config.add_plugin_config(
 )
 Config.add_plugin_config(
     module="zhenxun_arktools",
+    key="MAA_COPILOT_SWITCH",
+    name="zhenxun_arktools",
+    value=False,
+    help_="自动推送MAA作业站新作业开关",
+    default_value=False
+)
+Config.add_plugin_config(
+    module="zhenxun_arktools",
+    key="MAA_COPILOT_INTERVAL",
+    name="zhenxun_arktools",
+    value=60,
+    help_="自动推送MAA作业站新作业多少分钟运行一次",
+    default_value=60
+)
+Config.add_plugin_config(
+    module="zhenxun_arktools",
     key="ARKNIGHTS_UPDATE_CHECK_SWITCH",
     name="zhenxun_arktools",
     value=True,
