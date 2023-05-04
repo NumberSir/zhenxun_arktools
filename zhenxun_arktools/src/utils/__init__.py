@@ -5,6 +5,8 @@ from .database import *
 from .update import *
 
 from nonebot import on_command, logger
+from nonebot.params import CommandArg
+from nonebot.adapters.onebot.v11 import Message
 import httpx
 
 
@@ -29,9 +31,14 @@ async def _():
 
 
 @init_db.handle()
-async def _():
+async def _(args: Message = CommandArg()):
     await update_game_resource.send("开始更新游戏数据库，视磁盘读写性能需1分钟左右……")
-    await ArknightsDB.init_data(force=True)
+    if args.extract_plain_text().strip() == "-D":
+        await ArknightsDB.drop_data()
+        await update_game_resource.send("已彻底删除原表，开始重新写入数据库……")
+        await ArknightsDB.init_db()
+    else:
+        await ArknightsDB.init_data(force=True)
     await update_game_resource.finish("游戏数据库更新完成！")
 
 
@@ -42,6 +49,7 @@ usage:
     指令:
         更新方舟素材 => 从Github下载游戏素材(json数据与图片)
         更新方舟数据库 => 更新本地sqlite数据库
+        更新方舟数据库 -D => 删除原数据库各表并重新写入
 """.strip()
 __plugin_des__ = "更新游戏素材、更新本地数据库"
 __plugin_cmd__ = ["更新方舟素材", "更新方舟数据库"]

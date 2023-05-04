@@ -290,7 +290,7 @@ class ArknightsDB:
             SkillModel.update_or_create(
                 name=v["levels"][0]["name"],
                 skillType=v["levels"][0]["skillType"],
-                durationType=v["levels"][0]["skillType"],
+                durationType=v["levels"][0]["durationType"],
                 prefabId=v["levels"][0]["prefabId"],
                 **v
             )
